@@ -1,13 +1,21 @@
 {
   "name": "vuex-to-pinia",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "main": "index.js",
   "license": "MIT",
+  "files": [
+    "src"
+  ],
+  "bin": {
+    "vtp": "./src/cli.js"
+  },
   "scripts": {
-    "start": "node ./src/index.js"
+    "start": "node ./src/start.js"
   },
   "dependencies": {
+    "commander": "^11.1.0",
     "fs-extra": "^11.1.1",
-    "gogocode": "^1.0.55"
+    "gogocode": "^1.0.55",
+    "inquirer": "^8.2.5"
   }
 }
