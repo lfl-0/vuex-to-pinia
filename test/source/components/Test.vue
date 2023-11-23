@@ -1,5 +1,8 @@
 <script setup>
 import useStore from '@/store'
+import { INIT } from '@/store/app/actionTypes'
+import { COMMIT } from '@/store/app/mutationTypes'
+import { ALL } from '@/store/test/mutationTypes'
 
 const store = useStore()
 

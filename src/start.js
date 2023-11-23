@@ -11,11 +11,13 @@ async function start(src, output) {
   ])
 
   const filePaths = await scanFilesWithKeyword(path.resolve(process.cwd(), src))
-  const res = await Promise.all(filePaths.map((i) => transform(i, vuexModuleName, piniaHookName, piniaName, output)))
+  const res = await Promise.all(
+    filePaths.map((i) => transform(i, vuexModuleName, piniaName, piniaHookName, path.resolve(process.cwd(), output)))
+  )
   const count = res.filter((i) => i).length
   console.log(`${count} files were modified!!!`)
 }
 
 module.exports = {
-  start,
+  start
 }

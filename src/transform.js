@@ -25,23 +25,27 @@ async function transform(filepath, vuexModuleName, piniaName, piniaHookName, out
     return
   }
 
-  // 添加导入
-  script.find(`import useStore from '@/store'`).each((i) => {
-    i.after(`import ${piniaHookName} from '@/stores/${vuexModuleName}'`)
-  })
-  // 添加 use hook
-  script.find(`const ${storeName} = useStore()`).each((i) => {
-    i.after(`const ${piniaName} = ${piniaHookName}()`)
-  })
+  transformImport(script, storeName, vuexModuleName, piniaName, piniaHookName)
 
   const result = ast.generate()
 
-  const distPath = output ? path.resolve(process.cwd(), output, path.relative(process.cwd(), filepath)) : filepath
+  const distPath = getDistPath(filepath, output)
   await fs.createFile(distPath)
   fs.writeFile(distPath, result)
 
   console.log(`Modified: ${filepath}`)
   return true
+}
+
+function getDistPath(filepath, output) {
+  if (!output) {
+    return filepath
+  }
+
+  const outputRelative = path.relative(process.cwd(), output)
+  const fileRelative = path.relative(process.cwd(), filepath)
+  const dir = fileRelative.split(path.sep)[0]
+  return path.resolve(process.cwd(), fileRelative.replace(dir, outputRelative))
 }
 
 function transformState(ast, storeName, vuexModuleName, piniaName) {
@@ -82,6 +86,35 @@ function transformCommitDispatch(ast, type, storeName, vuexModuleName, piniaName
     return `${piniaName}[${name}](${otherParams.join(', ')})`
   })
   return isReplace
+}
+
+function transformImport(ast, storeName, vuexModuleName, piniaName, piniaHookName) {
+  // 添加 pinia 导入
+  ast.find(`import useStore from '@/store'`).each((i) => {
+    i.after(`import ${piniaHookName} from '@/stores/${vuexModuleName}'\n`)
+  })
+
+  const actionAst = ast.find(`import { $$$0 } from '@/store/${vuexModuleName}/actionTypes'`)
+  const mutationAst = ast.find(`import { $$$0 } from '@/store/${vuexModuleName}/mutationTypes'`)
+  const actionTypesName = actionAst.match?.['$$$0']?.map((i) => i.local.name) || []
+  const mutationTypesName = mutationAst.match?.['$$$0']?.map((i) => i.local.name) || []
+  const allTypesName = [...actionTypesName, ...mutationTypesName].filter((i) => i)
+  if (allTypesName.length) {
+    actionAst.remove()
+    mutationAst.remove()
+    ast.before(`import { ${allTypesName.join(', ')} } from '@/stores/${vuexModuleName}/actionTypes'\n`)
+  }
+
+  // 添加 pinia hook
+  ast.find(`const ${storeName} = useStore()`).each((i) => {
+    i.after(`const ${piniaName} = ${piniaHookName}()`)
+  })
+
+  // 没有使用则移除vuex
+  if (!ast.find(`${storeName}.$_$`)?.match?.[0]) {
+    ast.find(`import useStore from '@/store'`).remove()
+    ast.find('const $_$ = useStore()').remove()
+  }
 }
 
 module.exports = {
