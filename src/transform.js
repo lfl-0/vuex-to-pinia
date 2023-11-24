@@ -1,6 +1,7 @@
 const $ = require('gogocode')
 const fs = require('fs-extra')
 const path = require('path')
+const generate = require('@babel/generator').default
 
 async function transform(filepath, vuexModuleName, piniaName, piniaHookName, output) {
   const isVue = path.extname(filepath) === '.vue'
@@ -58,14 +59,24 @@ function transformState(ast, storeName, vuexModuleName, piniaName) {
 
 function transformGetters(ast, storeName, vuexModuleName, piniaName) {
   const matchPre = `${vuexModuleName}/`
-  const matchName = `${vuexModuleName}/$_$`
-  const getters = ast.find(`${storeName}.getters['${matchName}']`)
-  if (!getters?.match[matchPre]?.length) {
+  const getters = ast.find(`${storeName}.getters[$_$]`)
+  if (!getters.length) {
     return
   }
-  getters.match[matchPre].forEach((i) => {
-    const name = i.value.replace(matchPre, '')
-    getters.replace(`${storeName}.getters['${matchName}']`, `${piniaName}.${name}`)
+  const names = []
+  for (let i = 0; i < getters.length; i++) {
+    getters[i].match[0].forEach((item) => {
+      if (item.value.includes(matchPre)) {
+        names.push(item.value)
+      }
+    })
+  }
+  if (!names.length) {
+    return
+  }
+  names.forEach((i) => {
+    const name = i.replaceAll('`', '').replace(matchPre, '')
+    ast.replace(`${storeName}.getters[${i.startsWith('`') ? i : `'${i}'`}]`, `${piniaName}.${name}`)
   })
   return true
 }
@@ -76,22 +87,23 @@ function transformCommitDispatch(ast, type, storeName, vuexModuleName, piniaName
     const matched = match['$$$0']
     const name = matched[0].expressions[0].name
     const prefix = matched[0].quasis[0].value.raw
-    const otherParams = matched.slice(1).map((i) => i.name)
+    const params = matched
+      .slice(1)
+      .map((i) => generate(i).code)
+      .join(',')
     if (prefix !== `${vuexModuleName}/`) {
-      return `${storeName}.${type}(\`${prefix}\$\{${name}\}\`${otherParams.length ? ', ' : ''}${otherParams.join(
-        ', '
-      )})`
+      return `${storeName}.${type}(\`${prefix}\$\{${name}\}\`, ${params})`
     }
     isReplace = true
-    return `${piniaName}[${name}](${otherParams.join(', ')})`
+    return `${piniaName}[${name}](${params})`
   })
   return isReplace
 }
 
 function transformImport(ast, storeName, vuexModuleName, piniaName, piniaHookName) {
   // 添加 pinia 导入
-  ast.find(`import useStore from '@/store'`).each((i) => {
-    i.after(`import ${piniaHookName} from '@/stores/${vuexModuleName}'\n`)
+  ast.find(`import { useStore } from 'vuex'`).each((i) => {
+    i.after(`import { ${piniaHookName} } from '@/stores/${vuexModuleName}'\n`)
   })
 
   const actionAst = ast.find(`import { $$$0 } from '@/store/${vuexModuleName}/actionTypes'`)
@@ -111,8 +123,8 @@ function transformImport(ast, storeName, vuexModuleName, piniaName, piniaHookNam
   })
 
   // 没有使用则移除vuex
-  if (!ast.find(`${storeName}.$_$`)?.match?.[0]) {
-    ast.find(`import useStore from '@/store'`).remove()
+  if (!ast.has(`${storeName}.$_$`)) {
+    ast.find(`import { useStore } from 'vuex'`).remove()
     ast.find('const $_$ = useStore()').remove()
   }
 }
