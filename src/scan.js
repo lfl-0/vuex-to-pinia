@@ -6,6 +6,8 @@ const readdir = util.promisify(fs.readdir)
 const readFile = util.promisify(fs.readFile)
 const stat = util.promisify(fs.stat)
 
+const scanKeyword = ['useStore', '$store', '@/store']
+
 async function scanFilesWithKeyword(directory) {
   let result = []
   const files = await readdir(directory)
@@ -21,7 +23,7 @@ async function scanFilesWithKeyword(directory) {
       if (['.ts', '.js', '.vue'].includes(path.extname(absolutePath))) {
         const fileContent = await readFile(absolutePath, 'utf-8')
 
-        if (fileContent.includes('useStore()') || fileContent.includes('.$store')) {
+        if (scanKeyword.some(i => fileContent.includes(i))) {
           result.push(absolutePath)
         }
       }

@@ -9,7 +9,9 @@ async function transform(filepath, vuexModuleName, piniaName, piniaHookName, out
   const ast = $(source, isVue ? { parseOptions: { language: 'vue' } } : {})
   const script = isVue ? ast.find('<script setup></script>') : ast
 
-  const storeName = script.find('const $_$ = useStore()')?.match?.[0]?.[0].value
+  let storeName =
+    script.find('const $_$ = useStore()')?.match?.[0]?.[0].value ||
+    script.find(`import $_$ from '@/store'`)?.match?.[0]?.[0].value
 
   if (!storeName) {
     return
@@ -102,9 +104,7 @@ function transformCommitDispatch(ast, type, storeName, vuexModuleName, piniaName
 
 function transformImport(ast, storeName, vuexModuleName, piniaName, piniaHookName) {
   // 添加 pinia 导入
-  ast.find(`import { useStore } from 'vuex'`).each((i) => {
-    i.after(`import { ${piniaHookName} } from '@/stores/${vuexModuleName}'\n`)
-  })
+  ast.before(`import { ${piniaHookName} } from '@/stores/${vuexModuleName}'\n`)
 
   const actionAst = ast.find(`import { $$$0 } from '@/store/${vuexModuleName}/actionTypes'`)
   const mutationAst = ast.find(`import { $$$0 } from '@/store/${vuexModuleName}/mutationTypes'`)
@@ -125,6 +125,7 @@ function transformImport(ast, storeName, vuexModuleName, piniaName, piniaHookNam
   // 没有使用则移除vuex
   if (!ast.has(`${storeName}.$_$`)) {
     ast.find(`import { useStore } from 'vuex'`).remove()
+    ast.find(`import $_$ from '@/store'`).remove()
     ast.find('const $_$ = useStore()').remove()
   }
 }

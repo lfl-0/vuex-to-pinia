@@ -1,10 +1,8 @@
+const { start } = require('../src/start')
 const { transform } = require('../src/transform')
 const path = require('path')
 
-transform(
-  path.resolve(__dirname, './source/components/Test.vue'),
-  'app',
-  'appStore',
-  'useAppStore',
+start(
+  path.resolve(__dirname, './source'),
   path.resolve(__dirname, '../dist')
 )
