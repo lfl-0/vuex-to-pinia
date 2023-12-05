@@ -26,8 +26,8 @@ async function getCommits(file) {
 const isStartTemplate = (content) => /^\S*<template/.test(content)
 
 function swapTemplateAndScript(str) {
-  const templateMatch = str.match(/<template>[\s\S]*?<\/template>/)
-  const scriptMatch = str.match(/<script.*?>[\s\S]*?<\/script>/)
+  const templateMatch = str.match(/<template>[\s\S]*<\/template>/)
+  const scriptMatch = str.match(/<script.*?>[\s\S]*<\/script>/)
 
   if (!templateMatch || !scriptMatch) {
     return str
@@ -51,21 +51,49 @@ function getScript(str) {
   return str.match(/<script.*?>/)?.[0]
 }
 
+function getStyle(str) {
+  return str.match(/<style.*?>/)?.[0]
+}
+
 async function formatOne(file) {
   const [last, last2] = await getCommits(file)
   const [lastRaw, last2Raw] = await Promise.all([getFileRaw(last.hash, file), getFileRaw(last2.hash, file)])
   let newRaw = lastRaw
   let isUpdated = false
+
   if (isStartTemplate(lastRaw) !== isStartTemplate(last2Raw)) {
     newRaw = swapTemplateAndScript(lastRaw)
     isUpdated = true
   }
+
   const lastScript = getScript(newRaw)
   const last2Script = getScript(last2Raw)
   if (lastScript !== last2Script) {
     newRaw = newRaw.replace(lastScript, last2Script)
     isUpdated = true
   }
+
+  const lastStyle = getStyle(newRaw)
+  const last2Style = getStyle(last2Raw)
+  if (lastStyle !== last2Style) {
+    newRaw = newRaw.replace(lastStyle, last2Style)
+    isUpdated = true
+  }
+
+  const newTemplateWhite = newRaw.match(/(?<=<template>[\s\S]*<\/template>)\s*/)[0]
+  const oldTemplateWhite = last2Raw.match(/(?<=<template>[\s\S]*<\/template>)\s*/)[0]
+  if (newTemplateWhite !== oldTemplateWhite) {
+    newRaw = newRaw.replace(/(?<=<template>[\s\S]*<\/template>)\s*/, oldTemplateWhite)
+    isUpdated = true
+  }
+
+  const newScriptWhite = newRaw.match(/(?<=<script.*?>[\s\S]*<\/script>)\s*/)[0]
+  const oldScriptWhite = last2Raw.match(/(?<=<script.*?>[\s\S]*<\/script>)\s*/)[0]
+  if (newScriptWhite !== oldScriptWhite) {
+    newRaw = newRaw.replace(/(?<=<script.*?>[\s\S]*<\/script>)\s*/, oldScriptWhite)
+    isUpdated = true
+  }
+
   if (isUpdated) {
     const filepath = path.resolve(process.cwd(), file)
     console.log(filepath)
