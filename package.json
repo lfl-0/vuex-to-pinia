@@ -10,12 +10,14 @@
     "vtp": "./src/cli.js"
   },
   "scripts": {
-    "start": "node ./src/start.js"
+    "start": "node ./test/start.js",
+    "format": "node ./test/format.js"
   },
   "dependencies": {
     "@babel/generator": "^7.23.4",
     "commander": "^11.1.0",
     "fs-extra": "^11.1.1",
+    "gitlog": "^4.0.8",
     "gogocode": "^1.0.55",
     "inquirer": "^8.2.5"
   }
