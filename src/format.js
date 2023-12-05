@@ -26,28 +26,28 @@ async function getCommits(file) {
 const isStartTemplate = (content) => /^\S*<template/.test(content)
 
 function swapTemplateAndScript(str) {
-  const templateMatch = str.match(/<template>[\s\S]*?<\/template>/);
-  const scriptMatch = str.match(/<script.*?>[\s\S]*?<\/script>/);
+  const templateMatch = str.match(/<template>[\s\S]*?<\/template>/)
+  const scriptMatch = str.match(/<script.*?>[\s\S]*?<\/script>/)
 
   if (!templateMatch || !scriptMatch) {
-    return str;
+    return str
   }
 
-  const template = templateMatch[0];
-  const script = scriptMatch[0];
+  const template = templateMatch[0]
+  const script = scriptMatch[0]
 
   // 替换原位置为占位符
-  str = str.replace(template, 'TEMPLATE_PLACEHOLDER');
-  str = str.replace(script, 'SCRIPT_PLACEHOLDER');
+  str = str.replace(template, 'TEMPLATE_PLACEHOLDER')
+  str = str.replace(script, 'SCRIPT_PLACEHOLDER')
 
   // 交换位置
-  str = str.replace('TEMPLATE_PLACEHOLDER', script);
-  str = str.replace('SCRIPT_PLACEHOLDER', template);
+  str = str.replace('TEMPLATE_PLACEHOLDER', script)
+  str = str.replace('SCRIPT_PLACEHOLDER', template)
 
-  return str;
+  return str
 }
 
-function getScript (str) {
+function getScript(str) {
   return str.match(/<script.*?>/)?.[0]
 }
 
@@ -67,7 +67,9 @@ async function formatOne(file) {
     isUpdated = true
   }
   if (isUpdated) {
-     await fs.writeFile(path.resolve(process.cwd(), file), newRaw, 'utf-8')
+    const filepath = path.resolve(process.cwd(), file)
+    console.log(filepath)
+    await fs.writeFile(filepath, newRaw, 'utf-8')
   }
 }
 
