@@ -68,14 +68,14 @@ async function formatOne(file) {
 
   const lastScript = getScript(newRaw)
   const last2Script = getScript(last2Raw)
-  if (lastScript !== last2Script) {
+  if (lastScript && last2Script && lastScript !== last2Script) {
     newRaw = newRaw.replace(lastScript, last2Script)
     isUpdated = true
   }
 
   const lastStyle = getStyle(newRaw)
   const last2Style = getStyle(last2Raw)
-  if (lastStyle !== last2Style) {
+  if (lastStyle && last2Style && lastStyle !== last2Style) {
     newRaw = newRaw.replace(lastStyle, last2Style)
     isUpdated = true
   }
